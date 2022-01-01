@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser') // bodyParser ensures that we parse the request bodies of incoming request
 
 const placesRoutes = require('./routes/places-routes')
+const usersRoutes = require('./routes/users-routes')
 
 const app = express()
 
@@ -9,6 +10,7 @@ const app = express()
 app.use(bodyParser.json())
 
 app.use('/api/places', placesRoutes)
+app.use('/api/users', usersRoutes)
 
 // error handling for unsupported route
 app.use((req, res, next) => {
