@@ -2,6 +2,8 @@ const uuid = require('uuid').v4
 const { validationResult } = require('express-validator')
 
 const HttpError = require('../models/http-error')
+const getCoordsForAddress = require('../util/location')
+const Place = require('../models/place')
 
 let DUMMY_PLACES = [
   {
@@ -41,26 +43,39 @@ exports.getPlacesByUserId = (req, res, next) => {
   res.json({ places })
 }
 
-exports.createPlace = (req, res, next) => {
+exports.createPlace = async (req, res, next) => {
   const errors = validationResult(req)
 
   if (!errors.isEmpty()) {
     console.log(errors)
-    throw new HttpError('Invalid input passed, please check your data', 422)
+    return next(new HttpError('Invalid input passed, please check your data', 422))
   }
 
-  const { title, description, coordinates, address, creator } = req.body
+  const { title, description, address, creator } = req.body
 
-  const createdPlace = {
-    id: uuid(),
+  let coordinates
+  try {
+    coordinates = await getCoordsForAddress(address)
+  } catch (error) {
+    return next(error)
+  }
+
+  const createdPlace = new Place({
     title,
     description,
-    location: coordinates,
     address,
+    location: coordinates,
+    image: 'https://media.istockphoto.com/photos/the-city-of-dreams-new-york-citys-skyline-at-twilight-picture-id599766748?k=20&m=599766748&s=612x612&w=0&h=lZ8gpCQQifxd0V7zOwFFkFym9bnZ6TBQkWafAHnc-D4=',
     creator
-  }
+  })
 
-  DUMMY_PLACES.push(createdPlace) // unshift() will add it as the first element
+  try {
+    await createdPlace.save()
+  } catch {
+    const error = new HttpError('Creating place failed, please try again', 500)
+
+    return next(error)
+  }
 
   res.status(201).json({ place: createdPlace })
 }
